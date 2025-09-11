@@ -1,0 +1,6 @@
+outs:
+- md5: bf54484ffdaab12d9ed0ec04fe2c7eda.dir
+  size: 7271
+  nfiles: 2
+  hash: md5
+  path: feedback

@@ -1,0 +1,10 @@
+apiVersion: 1
+providers:
+  - name: 'ML Monitoring'
+    orgId: 1
+    folder: 'ML'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    options:
+      path: /etc/grafana/provisioning/dashboards

@@ -1,0 +1,97 @@
+{
+  "title": "Model & Drift Monitoring",
+  "timezone": "browser",
+  "panels": [
+    {
+      "title": "Data Drift Score",
+      "type": "timeseries",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "min": 0,
+          "max": 1
+        }
+      },
+      "targets": [
+        {
+          "expr": "data_drift_score",
+          "legendFormat": "Data Drift Score"
+        }
+      ],
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "title": "Prediction Drift Score",
+      "type": "timeseries",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "min": 0,
+          "max": 1
+        }
+      },
+      "targets": [
+        {
+          "expr": "prediction_drift_score",
+          "legendFormat": "Prediction Drift Score"
+        }
+      ],
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      }
+    },
+ 
+    {
+      "title": "Data Drift Detected (0/1)",
+      "type": "stat",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none"
+        }
+      },
+      "targets": [
+        {
+          "expr": "data_drift_detected",
+          "legendFormat": "Data Drift Detected"
+        }
+      ],
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      }
+    },
+    {
+      "title": "Prediction Drift Detected (0/1)",
+      "type": "stat",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none"
+        }
+      },
+      "targets": [
+        {
+          "expr": "prediction_drift_detected",
+          "legendFormat": "Prediction Drift Detected"
+        }
+      ],
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      }
+    }
+  ],
+  "schemaVersion": 37,
+  "version": 1
+}

@@ -1,0 +1,79 @@
+{
+  "title": "Prediction Performance Monitoring",
+  "panels": [
+    {
+      "title": "Prediction F1 Score",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "prediction_f1_score",
+          "legendFormat": "Current F1 Score"
+        },
+        {
+          "expr": "0.657",
+          "legendFormat": "Threshold (0.657)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "", 
+          "min": 0,                 
+          "max": 1,                 
+            "spanNulls": true
+          }
+        },
+      "thresholds": [ 
+        {
+          "value": 0.657,
+          "color": "red",
+          "mode": "absolute",
+          "fill": "below",
+          "line": true,
+          "label": "Warning Threshold"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 }
+    },
+    {
+      "title": "Prediction Requests by Endpoint (Total)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum by (endpoint) (increase(prediction_requests_total[5m]))",
+          "legendFormat": "{{endpoint}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 }
+    },
+    {
+      "title": "Prediction Latency (ms)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.5, sum(rate(prediction_latency_seconds_bucket[5m])) by (le))",
+          "legendFormat": "Median (P50)"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(prediction_latency_seconds_bucket[5m])) by (le))",
+          "legendFormat": "P95 Latency"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(prediction_latency_seconds_bucket[5m])) by (le))",
+          "legendFormat": "P99 Latency"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "spanNulls": true
+          }
+        }
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 }
+    }
+  ],
+  "schemaVersion": 37,
+  "version": 1,
+  "editable": true
+}

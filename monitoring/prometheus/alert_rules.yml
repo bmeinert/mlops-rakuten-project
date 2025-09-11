@@ -1,0 +1,11 @@
+groups:
+- name: startup-check
+  rules:
+  - alert: PredictServiceF1TooLow
+    expr: prediction_f1_score < 0.65   
+    for: 15m
+    labels:
+      severity: critical
+    annotations:
+      summary: "F1-Score of predict_service is below 65 %"
+      description: "Current F1-Score is {{ $value }} ."

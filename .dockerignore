@@ -1,0 +1,63 @@
+# Python bytecode
+__pycache__/
+.pytest_cache/
+*.py[cod]
+*$py.class
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Virtual environments and env files
+.venv/
+.env
+*.pem
+*.key
+
+
+# Git directory and gitignore
+#.git/
+.gitignore
+.gitkeep
+git-workflow.md
+
+# Logfiles & Temp
+*.log
+tmp/
+/temp/
+
+# Mac/Windows Artefakte
+.DS_Store
+Thumbs.db
+
+# IDE/Editor
+.vscode/
+
+# Exclude pydoc in data_processing folder
+plugins/cd4ml/data_processing/preprocessing_pydoc.py
+
+# Exclude Makefile and associated files
+Makefile
+pyproject.toml
+
+# DVC files
+#dvc.yaml
+READ_ME_FOR_DVC.md
+.dvcignore
+
+# folders
+notebooks
+models
+logs/
+docs
+data
+monitoring/
+#dags
+
+# Other
+ui_app.py
+git-workflow.md
+main.py
+READ_ME_FOR AIRFLOW.md
+READ_ME_drift.md
+
+

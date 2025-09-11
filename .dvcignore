@@ -1,0 +1,45 @@
+# Add patterns of files dvc should ignore, which could improve
+# the performance. Learn more at
+# https://dvc.org/doc/user-guide/dvcignore
+
+# Editor & IDE
+.vscode/
+.idea/
+
+# Environments
+.env
+.env.example
+.env3.11_modelling
+.venv/
+
+# Python-Cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Test-/Logdata
+.pytest_cache/
+logs/
+*.log
+
+# Optional
+notebooks/
+monitoring/
+#shared_volume/
+#.models/
+#models/
+
+# Other
+ui_app.py
+pyproject.toml
+main.py
+git-workflow.md
+dvc_push_manager.py
+docker-compose.inference.yml
+Makefile
+pyproject.toml
+READ_ME_FOR_AIRFLOW.md
+READ_ME_FOR_DVC.md
+README_drift.md
+webserver_config.py
+

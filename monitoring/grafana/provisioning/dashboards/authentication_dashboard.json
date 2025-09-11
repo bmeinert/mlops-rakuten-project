@@ -1,0 +1,49 @@
+{
+  "title": "Auth Service Metrics Dashboard",
+  "uid": "auth_service_dashboard",
+  "timezone": "browser",
+  "panels": [
+    {
+      "title": "Requests per Second (Auth Service)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum by (method, endpoint, status_code) (rate(auth_service_requests_total[$__rate_interval]))",
+          "legendFormat": "{{endpoint}} {{status_code}} {{method}}"
+        }
+      ],
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        }
+      }
+    },
+    {
+      "title": "Request Latency (Auth Service) - P99",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(auth_service_request_latency_seconds_bucket[5m])) by (le, method, endpoint))",
+          "legendFormat": "{{endpoint}} {{method}} "
+        }
+      ],
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        }
+      }
+    }
+  ]
+}

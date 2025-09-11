@@ -1,0 +1,9 @@
+[project]
+name = "mlops-rakuten-project"
+version = "0.1.0"
+description = "Rakuten project orchestration with dvc within docker containers"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "dvc[s3]>=3.59.1",
+]

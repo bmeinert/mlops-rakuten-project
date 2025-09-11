@@ -1,0 +1,7 @@
+[core]
+    remote = origin
+[cache]
+    protected = false
+['remote "origin"']
+    url = s3://dvc
+    endpointurl = https://dagshub.com/BeritM/mlops-rakuten-project.s3

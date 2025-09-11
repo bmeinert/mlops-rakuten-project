@@ -1,0 +1,7 @@
+model:
+  type: sgd_classifier
+  params:
+    loss: log_loss
+    alpha: 1.1616550847757421e-06
+    max_iter: 1000
+

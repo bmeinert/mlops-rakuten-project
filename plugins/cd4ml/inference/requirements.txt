@@ -1,5 +1,0 @@
-fastapi
-uvicorn[standard]
-scikit-learn==1.5.2
-pandas
-nltk

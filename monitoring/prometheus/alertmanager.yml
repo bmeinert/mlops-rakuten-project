@@ -1,0 +1,14 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: 'airflow_retrain'
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 72h
+
+receivers:
+  - name: 'airflow_retrain'
+    webhook_configs:
+      - url: "http://webhook_proxy:5000/alertmanager-webhook" 
+        send_resolved: false

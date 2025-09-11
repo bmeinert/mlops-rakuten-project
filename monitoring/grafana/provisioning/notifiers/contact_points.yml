@@ -1,0 +1,15 @@
+#apiVersion: 1
+
+
+#contactPoints:
+#  - name: "Admin E-Mail" 
+#    type: email          
+#    settings:
+#      addresses: "berit.schmidt.meinert@gmail.com" 
+#      singleEmail: false
+#      subject: "Grafana Alert: {{ .Alerts.0.Labels.alertname }}"
+#    schedules:
+#      - type: time
+#        muteTimeIntervals: ["23:59-08:00"] 
+#    #   - type: day
+#    #     muteDaysOfWeek: ["saturday", "sunday"]

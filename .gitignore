@@ -1,0 +1,43 @@
+.ipynb_checkpoints/
+
+# DVC cache
+.dvc/cache
+
+# Data files managed by DVC
+shared_volume/data/raw
+shared_volume/data/processed
+shared_volume/data/feedback
+shared_volume/models
+shared-volume/data/raw
+shared-volume/data/feedback
+!shared_volume/data/raw/.gitkeep
+!shared_volume/data/processed/.gitkeep
+!shared_volume/data/feedback/.gitkeep
+!shared_volume/models/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# env
+.env
+/model.joblibenv
+env*
+venv
+my_env
+/data/
+/models/
+/models
+.vscode/
+
+# airflow
+logs/
+airflow-*.pid
+airflow-webserver.pid
+airflow.db
+airflow.cfg
+
+# personal
+*personal
+*00*

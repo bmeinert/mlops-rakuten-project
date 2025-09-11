@@ -1,0 +1,69 @@
+# Purpose of this file: dvc.yaml is used to define the stages of the DVC pipeline
+# and the dependencies between them
+# it is used to track the data and models in the pipeline
+# and to define the commands to run the pipeline.
+stages:
+  preprocess:
+    cmd: python plugins/cd4ml/data_processing/run_preprocessing.py
+    deps:
+      - plugins/cd4ml/data_processing/run_preprocessing.py
+    outs:
+      - data/raw/raw_x_y.csv
+      - data/processed/X_test.csv
+      - data/processed/X_test_tfidf.pkl
+      - data/processed/X_train.csv
+      - data/processed/X_train_tfidf.pkl
+      - data/processed/X_validate.csv
+      - data/processed/X_validate_tfidf.pkl
+      - data/processed/y_test.csv
+      - data/processed/y_train.csv
+      - data/processed/y_validate.csv
+
+#so oder so ähnlich:
+  # train:
+  #   cmd: python plugins/cd4ml/model_training/train.py \
+  #         --X data/processed/X_train_tfidf.pkl \
+  #         --y data/processed/y_train.csv \
+  #         --model-out models/model.pkl
+  #   deps:
+  #     - data/processed/X_train_tfidf.pkl
+  #     - data/processed/y_train.csv
+  #     - plugins/cd4ml/model_training/train.py
+  #   outs:
+  #     - models/sgd_text_model.pkl
+
+  # validate:
+  #   cmd: python plugins/cd4ml/model_training/validate.py \
+  #        --X data/processed/X_validate_tfidf.pkl \
+  #        --y data/processed/y_validate.csv \
+  #        --model models/sgd_text_model.pkl
+  #   deps:
+  #     - data/processed/X_validate_tfidf.pkl
+  #     - data/processed/y_validate.csv
+  #     - models/sgd_text_model.pkl
+  #   outs:
+  #     - validation_results.json
+
+# # inference for batch-process: 
+#   inference:
+#     cmd: python plugins/cd4ml/inference/infer.py \
+#           --X data/processed/X_test_tfidf.pkl \
+#           --y data/processed/y_test.csv \
+#           --model models/sgd_text_model.pkl \
+#           --output predictions.csv
+#     deps:
+#       - data/processed/X_test_tfidf.pkl
+#       - data/processed/y_test.csv
+#       - models/sgd_text_model.pkl
+#       - plugins/cd4ml/inference/infer.py
+#     outs:
+#       - predictions.csv
+
+# # inference with uvicorn:
+  inference:
+    # Instead of running the inference in a batch process, we run a uvicorn server that serves the model and allows for real-time inference.
+    # The server will be running indefinitely, so we don't need to specify an output file.
+    cmd: uvicorn infer:app --host 0.0.0.0 --port 8000
+    deps:
+      - plugins/cd4ml/inference/infer.py
+      - models/sgd_text_model.pkl # Es gibt hier kein "outs"-Feld, da der API-Server dauerhaft läuft und keine konkrete Datei als Output erzeugt.
