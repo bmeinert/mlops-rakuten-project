@@ -121,7 +121,8 @@ mlops-rakuten-project/
 ├── dockerfiles/                    # One Dockerfile per micro‑service
 ├── dags/                           # Airflow DAGs
 ├── plugins/                        # Domain logic
-│   └── cd4ml/                      #  ├─ data_processing/
+│   └── cd4ml/                      #  ├─ alertmanager_helper/
+                                    #  ├─ data_processing/
 │                                   #  ├─ model_training/
 │                                   #  ├─ model_validation/
 |                                   #  ├─ inference/
@@ -153,25 +154,27 @@ cd mlops-rakuten-project
 cp .env.example .env        # fill in GitHub & Dagshub creds
 ```
 
-### 3 – Run the core stack locally
+### 3 – Run the API and monitoring stack
 
 ```bash
-# Pull raw data / models from Dagshub & execute the pipeline
-docker compose up --build
+docker compose up --build -d dvc-sync auth_service predict_service postgres airflow-init airflow-webserver airflow-scheduler blackbox-exporter prometheus grafana alertmanager webhook_proxy
 # ⇒  http://localhost:8001  Auth Service
 # ⇒  http://localhost:8002  Prediction API
 # ⇒  http://localhost:8080  Airflow
-```
-Artifacts and metrics will be pushed automatically to GitHub / Dagshub.
-
-### 4 – (Optionally) start the monitoring stack
-
-```bash
-docker compose -f docker-compose.monitoring.yml up --build -d
 # ⇒  http://localhost:9090  Prometheus
 # ⇒  http://localhost:9093  Alertmanager
 # ⇒  http://localhost:3000  Grafana
 ```
+
+
+### 4 – (Optionally) start the core stack locally
+
+```bash
+# Pull raw data / models from Dagshub & execute the pipeline
+docker compose up --build -d dvc-sync preprocessing model_training model_validation
+
+```
+Artifacts and metrics will be pushed automatically to GitHub / Dagshub.
 
 ### 5 – Launch the Streamlit demo
 
@@ -219,7 +222,7 @@ The helper script `dvc_push_manager.py` automates *DVC ➜ Git* synchronisatio
 ## Orchestration & Automation
 
 * **Local** – `docker‑compose.yml` wires the individual services and shared volumes.
-* **Batch** – `ml_pipeline_mixed_experiment_dvc.py` Airflow DAG runs every 10 min and orchestrates the four Docker containers with `DockerOperator`.
+* **Batch** – `ml_pipeline_mixed_experiment_dvc.py` Airflow DAG runs weekly and orchestrates the four Docker containers with `DockerOperator`.
 * **CI / Tests** – GitHub Actions build images, execute linters + the PyTest suite located in `plugins/cd4ml/tests`.
 
 ---
@@ -301,7 +304,9 @@ streamlit run ui_app.py --server.port 8501
 * **Rate-limiting and alerts** - detect unusually high request volumes (potential DDoS) and optionally disable or throttle the service if thresholds are exceeded.
 * **Dashboard enhancement** - additional metrics such as resource utilization, auth attempts, ... to get more information and enhance systems and models.
 * **Security hardening** – container image scanning (Trivy) & Dependabot for vuln alerts.
+* **Resource Efficiency Improvements** - optimize container and service configurations to reduce computational load.
 * **Image recognition models** - enable multimodal inference and enrich the system’s predictive capabilities.
+
 
 ---
 

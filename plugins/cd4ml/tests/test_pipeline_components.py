@@ -84,22 +84,15 @@ class TestDataProcessing:
         mock_lemmatizer.return_value = Mock()
         
         try:
-            # These imports might fail due to missing dependencies or import structure
-            # Let's check if the files exist first
             preprocessing_path = os.path.join('plugins', 'cd4ml', 'data_processing', 'run_preprocessing.py')
             assert os.path.exists(preprocessing_path), f"run_preprocessing.py not found at {preprocessing_path}"
-            
-            # Try importing just the module existence
-            import plugins.cd4ml.data_processing
             assert True
         except ImportError as e:
             pytest.skip(f"Skipping due to import dependencies: {e}")
     
     def test_clean_text_functionality(self):
-        """Test text cleaning functionality - simplified version"""
-        # Simple text cleaning test without importing the actual module
+        """Test text cleaning functionality without importing the actual module"""
         def simple_clean_text(text):
-            # Simplified version for testing
             import re
             text = text.lower()
             text = re.sub(r'[^a-zA-Z0-9\s]', '', text)
@@ -330,9 +323,9 @@ class TestErrorHandling:
         """Test handling of missing description column"""
         df = pd.DataFrame({'wrong_column': ['test']})
         
-        # Should handle missing column gracefully
+        # Handle missing column gracefully
         with pytest.raises(KeyError):
-            _ = df["description"]  # This should raise KeyError
+            _ = df["description"]  
     
     def test_dvc_push_failure_handling(self):
         """Test handling of DVC push failures"""
@@ -342,7 +335,7 @@ class TestErrorHandling:
         
         # Pipeline should continue even if DVC fails
         success = mock_dvc_push(description="test", max_retries=1)
-        assert success is False  # But shouldn't raise exception
+        assert success is False  
 
 
 class TestProjectStructure:

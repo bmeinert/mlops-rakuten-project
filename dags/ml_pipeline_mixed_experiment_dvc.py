@@ -14,7 +14,7 @@ from airflow.operators.python import PythonOperator
 from airflow.providers.docker.operators.docker import DockerOperator
 from docker.types import Mount
 
-# ─── Load .env ────────────────────────────────────────────────────────────────
+# Load .env 
 load_dotenv('/opt/airflow/.env')
 
 logger = logging.getLogger(__name__)
@@ -33,21 +33,19 @@ with DAG(
     dag_id='ml_pipeline_mixed_experiment_dvc',
     default_args=default_args,
     description='ML Pipeline: all via DockerOperator',
-    schedule_interval='@weekly',
+    schedule_interval='@monthly',
     start_date=days_ago(1),
     catchup=False,
     max_active_runs=1,
     tags=['ml','training','docker','dvc'],
 ) as dag:
 
-    PROJECT_DIR = os.environ["HOST_PROJECT_PATH"] # ← host path	
+    PROJECT_DIR = os.environ["HOST_PROJECT_PATH"] # host path	
     logger.info(f"DEBUG: PROJECT_DIR resolved in DAG to: {PROJECT_DIR}")
     CONTAINER_PROJECT_PATH = '/app'
     CONTAINER_SHARED_VOLUME_PATH = os.path.join(CONTAINER_PROJECT_PATH, "shared-volume")
     CONTAINER_DVC_CACHE_PATH = os.path.join(CONTAINER_PROJECT_PATH, ".dvc", "_cache")
 
-    #SHARED_VOL = os.path.join(PROJECT_DIR, "shared_volume")
-    #PROJECT_DIR_DVC = '/opt/airflow/project'
     DOCKER_SOCK = 'unix:///var/run/docker.sock'
     
     # 0. Env & Docker CLI sanity check
@@ -78,38 +76,22 @@ with DAG(
         docker_url=DOCKER_SOCK,
         network_mode='bridge',
         mounts=[
-            # Mount des gesamten Projektverzeichnisses
-            #Mount(
-            #    source=PROJECT_DIR,
-            #    target=CONTAINER_PROJECT_PATH,
-            #    type='bind'
-            #),
-            # Mount des DVC Caches direkt von Host (wie in docker-compose)
             Mount(
                 source="dcv-cache-volume",
                 target=CONTAINER_DVC_CACHE_PATH,
                 type='volume'
             ),        
-            #Mount of the shared volume as named volume
+            # Mount of the shared volume as named volume
             Mount(
                 source="shared-volume", 
                 target=CONTAINER_SHARED_VOLUME_PATH,
                 type='volume' 
             ),
-            # Alternative - shared volume as bindmount
-            # Mount(
-            #     source=os.path.join(PROJECT_DIR, "shared_volume"), # Absoluter Host-Pfad
-            #     target=CONTAINER_SHARED_VOLUME_PATH,
-            #     type='bind'
-            # ),
         ],
         environment={
             'DAGSHUB_USER_TOKEN': os.getenv('DAGSHUB_USER_TOKEN'),
             'DAGSHUB_REPO_OWNER': os.getenv('DAGSHUB_REPO_OWNER'),
             'DAGSHUB_REPO_NAME': os.getenv('DAGSHUB_REPO_NAME'),
-            # Weitere Env-Variablen, die DVC benötigt (z.B. AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, etc.)
-            # Falls DVC_CACHE_DIR nicht automatisch im Container auf den gemounteten Pfad zeigt:
-            # 'DVC_CACHE_DIR': CONTAINER_DVC_CACHE_PATH,
         },
         force_pull=False,
         mount_tmp_dir=False,
@@ -128,7 +110,6 @@ with DAG(
             mounts=[
                 Mount(target='/app', source=PROJECT_DIR, type='bind'),
                 Mount(source="dvc-cache", target=CONTAINER_DVC_CACHE_PATH),
-                #Mount(target='/app/shared_volume', source=SHARED_VOL, type='bind'),
                 Mount(source="shared_volume", target=CONTAINER_SHARED_VOLUME_PATH, type='volume'),
             ],
             working_dir='/app',

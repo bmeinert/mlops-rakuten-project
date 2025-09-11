@@ -1,7 +1,5 @@
 """
 run_model_training.py
-
-Updated version with improved DVC push logic and better error handling.
 """
 
 import sys
@@ -11,10 +9,7 @@ import mlflow
 import mlflow.sklearn
 import yaml
 from sklearn.metrics import f1_score, classification_report
-
-# Import the improved DVC push manager
 from dvc_push_manager import track_and_push_with_retry
-
 from model_training import load_train_data, calculate_class_weights, train_final_model
 
 # ---------- Dagshub ENV ----------
@@ -26,16 +21,16 @@ DAGSHUB_REPO_NAME  = os.getenv("DAGSHUB_REPO_NAME")
 # ---------- Paths ----------
 INPUT_DIR  = os.getenv("DATA_PROCESSED_DIR")
 OUTPUT_DIR = os.getenv("MODEL_DIR")
-X_TRAIN_TFIDF_PATH = os.path.join(INPUT_DIR, os.getenv("X_TRAIN_TFIDF")) # type: ignore
-Y_TRAIN_PATH = os.path.join(INPUT_DIR, os.getenv("Y_TRAIN")) # type: ignore
-X_VALIDATE_TFIDF_PATH = os.path.join(INPUT_DIR, os.getenv("X_VALIDATE_TFIDF")) # type: ignore
-Y_VALIDATE_PATH = os.path.join(INPUT_DIR, os.getenv("Y_VALIDATE")) # type: ignore
-MODEL_PATH = os.path.join(OUTPUT_DIR, os.getenv("MODEL")) # type: ignore
-CLASS_REPORT_PATH = os.path.join(OUTPUT_DIR, os.getenv("CLASS_REPORT")) # type: ignore
-VECTORIZER_PATH = os.path.join(OUTPUT_DIR, os.getenv("TFIDF_VECTORIZER")) # type: ignore
-PRODUCT_DICTIONARY_PATH = os.path.join(OUTPUT_DIR, os.getenv("PRODUCT_DICTIONARY")) # type: ignore
+X_TRAIN_TFIDF_PATH = os.path.join(INPUT_DIR, os.getenv("X_TRAIN_TFIDF")) 
+Y_TRAIN_PATH = os.path.join(INPUT_DIR, os.getenv("Y_TRAIN")) 
+X_VALIDATE_TFIDF_PATH = os.path.join(INPUT_DIR, os.getenv("X_VALIDATE_TFIDF")) 
+Y_VALIDATE_PATH = os.path.join(INPUT_DIR, os.getenv("Y_VALIDATE")) 
+MODEL_PATH = os.path.join(OUTPUT_DIR, os.getenv("MODEL")) 
+CLASS_REPORT_PATH = os.path.join(OUTPUT_DIR, os.getenv("CLASS_REPORT")) 
+VECTORIZER_PATH = os.path.join(OUTPUT_DIR, os.getenv("TFIDF_VECTORIZER")) 
+PRODUCT_DICTIONARY_PATH = os.path.join(OUTPUT_DIR, os.getenv("PRODUCT_DICTIONARY")) 
 PARAM_CONFIG_PATH = os.getenv("PARAM_CONFIG")
-RUN_ID_PATH = os.path.join(OUTPUT_DIR, os.getenv("CURRENT_RUN_ID")) # type: ignore
+RUN_ID_PATH = os.path.join(OUTPUT_DIR, os.getenv("CURRENT_RUN_ID")) 
 
 def validate_environment():
     """Validate that all required environment variables are set."""
@@ -51,7 +46,7 @@ def validate_environment():
         raise ValueError(f"Missing required environment variables: {missing_vars}")
     
     # Create output directory if it doesn't exist
-    os.makedirs(OUTPUT_DIR, exist_ok=True) # type: ignore
+    os.makedirs(OUTPUT_DIR, exist_ok=True) 
     print(f"Ensured output directory exists: {OUTPUT_DIR}")
 
 def validate_input_files():
@@ -76,14 +71,14 @@ def validate_input_files():
 def load_config(filename=PARAM_CONFIG_PATH):
     """Load configuration from YAML file."""
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    config_path = os.path.join(script_dir, filename) # type: ignore
+    config_path = os.path.join(script_dir, filename) 
     
     if not os.path.exists(config_path):
         # Try alternative locations
         alt_paths = [
             filename,  # Current directory
-            os.path.join(os.getcwd(), filename),  # Working directory # type: ignore
-            os.path.join(os.getcwd(), "config", filename)  # Config subdirectory # type: ignore
+            os.path.join(os.getcwd(), filename),  # Working directory 
+            os.path.join(os.getcwd(), "config", filename)  # Config subdirectory 
         ]
         
         for alt_path in alt_paths:
@@ -221,7 +216,6 @@ def main():
         print(f"Features: {X_train_tfidf.shape[1]}")
         print(f"Validation F1 score: {f1_weighted:.4f}")
         print(f"MLflow run ID: {run_id}")
-        #print(f"Model saved at: {MODEL_PATH}")
 
     except Exception as e:
         print(f"\nERROR in model training pipeline: {e}")
@@ -247,4 +241,3 @@ if __name__ == "__main__":
         print("Successfully tracked and pushed trained model to DVC")
     else:
         print("Warning: DVC tracking failed, but model training completed successfully")
-        # Don't exit with error - training was successful

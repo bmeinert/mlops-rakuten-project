@@ -13,7 +13,7 @@ shared_volume/models
 !shared_volume/data/feedback/.gitkeep
 !shared_volume/models/.gitkeep
 
-# Python stuff
+# Python
 __pycache__/
 *.pyc
 .venv/

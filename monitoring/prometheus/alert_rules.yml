@@ -1,11 +1,11 @@
 groups:
-  - name: model_performance
-    rules:
-      - alert: ModelF1Drop
-        expr: prediction_f1_score < 0.9 * prediction_f1_score offset 1h #0.9 instad of 0.5 which means 90% of the last time measured
-        for: 5m
-        labels:
-          severity: critical
-        annotations:
-          summary: "F1 score dropped by >10%"
-          description: "Current F1 score is {{ $value }} and has fallen by more than 10% compared to an hour ago."
+- name: startup-check
+  rules:
+  - alert: PredictServiceF1TooLow
+    expr: prediction_f1_score < 0.65   
+    for: 15m
+    labels:
+      severity: critical
+    annotations:
+      summary: "F1-Score of predict_service is below 65 %"
+      description: "Current F1-Score is {{ $value }} ."

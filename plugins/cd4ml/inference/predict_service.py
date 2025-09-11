@@ -16,7 +16,6 @@ from evidently import ColumnMapping
 import pandas as pd
 from sklearn.metrics import f1_score
 import threading
-import json
 import traceback
 import warnings
 from sklearn.exceptions import UndefinedMetricWarning
@@ -30,7 +29,6 @@ from plugins.cd4ml.inference.utils import generate_id
 from filelock import FileLock
 from collections import defaultdict
 from dotenv import load_dotenv
-import subprocess
 
 warnings.filterwarnings('ignore', category=UndefinedMetricWarning)
 load_dotenv()
@@ -93,6 +91,7 @@ MODEL_PERFORMANCE_PRECISION_CURRENT = Gauge(
 
 
 def calculate_and_expose_f1():
+    """Continuously calculate and expose the weighted F1 score based on user feedback."""
     while True:
         try:
             if not os.path.exists(FEEDBACK_CSV_PATH):
@@ -107,7 +106,6 @@ def calculate_and_expose_f1():
             if not all(col in df.columns for col in required_columns):
                 print("Feedback file is missing 'correct_code' or 'predicted_code' columns. Setting F1 to 0.")
                 PREDICTION_F1_SCORE.set(0)
-                time.sleep(300)
                 continue
 
             df['correct_code'] = pd.to_numeric(df['correct_code'], errors='coerce')
@@ -140,10 +138,12 @@ def calculate_and_expose_f1():
             print(f"Error calculating F1 score: {e}")
             print(f"Full traceback: {traceback.format_exc()}") 
             PREDICTION_F1_SCORE.set(0)
-        time.sleep(300)
 
 def calculate_and_expose_drift():
-    
+    """
+    Continuously monitor data and prediction drift, plus current model performance,
+    and expose the results through Prometheus gauges.
+    """
     try:
         if not os.path.exists(REFERENCE_DF_PATH):
             print(f"[ERROR] Reference data not found at {REFERENCE_DF_PATH}. Drift monitoring will not function.")
@@ -200,8 +200,6 @@ def calculate_and_expose_drift():
             
             reference_df_for_evidently = reference_df.copy()
             current_df_for_evidently = current_df_for_performance.copy()
-            product_dictionary = pd.read_pickle(product_dictionary_path)
-            sorted_target_names = [product_dictionary[k] for k in sorted(product_dictionary.keys())]
             
             column_mapping = ColumnMapping(
                 target="correct_code",
@@ -219,8 +217,6 @@ def calculate_and_expose_drift():
             data_drift_report = Report(metrics=[DataDriftPreset()])
             model_performance_report = Report(metrics=[ClassificationPreset()])
 
-            #report = Report(metrics=[DataDriftPreset(), ClassificationPreset()], include_tests=True)
-            
             model_performance_report.run(reference_data=reference_df_for_evidently, 
                        current_data=current_df_for_evidently,
                        column_mapping=column_mapping)
@@ -230,8 +226,6 @@ def calculate_and_expose_drift():
 
 
             # --- Extract metrics and send to Prometheus ---
-
-            #print(json.dumps(data_drift_report.as_dict(), indent=2)) # for debugging
 
             # Data Drift
             overall_drift = data_drift_report.as_dict()['metrics'][0]['result']['dataset_drift']
@@ -252,8 +246,6 @@ def calculate_and_expose_drift():
             PREDICTION_DRIFT_DETECTED.set(1 if drift_table['predicted_code']['drift_detected'] else 0)              
             print(f"prediction drift score: {prediction_drift_score}")
             
-            
-            #print(json.dumps(model_performance_report.as_dict(), indent=2))
             overall_performance = model_performance_report.as_dict()['metrics'][0]['result']['current']
             f1 = overall_performance['f1']
             precision = overall_performance['precision']
@@ -282,6 +274,20 @@ predict_app = FastAPI()
 # --- Middleware for request counting and latency ---
 @predict_app.middleware("http")
 async def add_process_time_header(request: Request, call_next):
+    """
+    Middleware to track prediction request metrics.
+
+    Measures request processing time and logs metrics to Prometheus:
+      - Total request count (`PREDICTION_REQUESTS_TOTAL`)
+      - Request latency (`PREDICTION_LATENCY`)
+
+    Parameters:
+        request (Request): The incoming FastAPI request.
+        call_next (Callable): Function to process the request and return a response.
+
+    Returns:
+        Response: The HTTP response with Prometheus metrics recorded.
+    """
     start_time = time.time()
     response = await call_next(request)
     process_time = time.time() - start_time
@@ -301,7 +307,6 @@ SECRET_KEY = "your_secret_key_here"
 ALGORITHM = "HS256"
 
 # --- Globals ---
-#FEEDBACK_CSV_PATH = os.path.join(os.getenv("FEEDBACK_DIR"), os.getenv("FEEDBACK_DATA"))
 predictor: Optional[ProductTypePredictorMLflow] = None
 prod_model_version = None
 model_params = {}
@@ -315,6 +320,16 @@ CSV_LOCK_PATH = None  # Will be initialized in startup()
 
 # --- Auth Helper ---
 def verify_token(token: str = Header(...)):
+    """
+    Validates a JWT token from the Authorization header.
+    Decodes the token using the configured secret and algorithm, and checks for a valid `sub` claim.
+    Parameters:
+        token (str): JWT token from the HTTP header.
+    Returns:
+        dict: Decoded token payload if valid.
+    Raises:
+        HTTPException (401): If the token is missing, invalid, or lacks a `sub` claim.
+    """
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username = payload.get("sub")
@@ -326,6 +341,13 @@ def verify_token(token: str = Header(...)):
 
 # --- DVC Push Helper ---
 def _async_track_and_push(description: str) -> None:
+    """
+    Asynchronously run a DVC/Git tracking and push operation in a background thread.
+    Starts a daemon thread that calls `track_and_push_with_retry()` with the given description.
+    Logs success, warning, or error messages based on the outcome.
+    Parameters:
+        description (str): A message describing the change to track and push.
+    """
     def _worker():
         try:
             ok = track_and_push_with_retry(description=description, max_retries=3)
@@ -352,6 +374,19 @@ class FeedbackInput(BaseModel):
 # --- Startup Hook ---
 @predict_app.on_event("startup")
 def startup():
+    """
+    Initializes the prediction service on application startup:
+    - Loads environment variables for paths, DAGsHub credentials, and configuration.
+    - Sets up paths for feedback tracking and file locks.
+    - Connects to DAGsHub-hosted MLflow to:
+        - Fetch and load the production model, vectorizer, reference data, and product dictionary.
+    - Initializes the predictor and supporting objects (e.g. label mappings).
+    - Launches background threads for:
+        - Continuous F1 score calculation from feedback.
+        - Data and prediction drift monitoring using Evidently.
+    Raises:
+        RuntimeError: If any step in the initialization fails.
+    """
     global FEEDBACK_CSV_PATH, predictor, prod_model_version
     global model_params, model_metrics, label_to_code, valid_labels, CSV_LOCK_PATH
     global REFERENCE_DF_PATH, product_dictionary_path
@@ -401,7 +436,6 @@ def startup():
         vectorizer_path_dir = client.download_artifacts(run_id=run_id, path="vectorizer")
         vectorizer_path = os.path.join(vectorizer_path_dir, "tfidf_vectorizer.pkl")
         print(f"[INFO] Vectorizer path: {vectorizer_path}")
-        # vectorizer_path = "/app/models/tfidf_vectorizer.pkl"
         print(f"[INFO] Using remote vectorizer: {vectorizer_path}")
 
         print(f"[INFO] Downloading reference data for evidently")
@@ -413,7 +447,6 @@ def startup():
         product_dict_dir = client.download_artifacts(run_id=run_id, path="product_dictionary")
         product_dictionary_path = os.path.join(product_dict_dir, "product_dictionary.pkl")
         print(f"[INFO] Product dictionary path: {product_dictionary_path}")
-        # product_dictionary_path = "/app/models/product_dictionary.pkl"
         print(f"[INFO] Using remote product dictionary: {product_dictionary_path}")
 
 
@@ -448,10 +481,41 @@ def startup():
 
 @predict_app.get("/health")
 def health_check():
+    """
+    Health check endpoint for the prediction service.
+
+    Returns a simple JSON response indicating the service is running.
+
+    Returns:
+        dict: {
+            "status": "healthy",
+            "service": "predict_service"
+        }
+    """
     return {"status": "healthy", "service": "predict_service"}
 
 @predict_app.get("/model-info")
 def get_model_info(user=Depends(verify_token)):
+    """
+    Returns metadata about the deployed production model.
+
+    Requires authentication. Responds with model version, registration timestamp,
+    selected hyperparameters, and key performance metrics.
+
+    Returns:
+        dict: {
+            "model_version": str,
+            "registered_at": ISO 8601 timestamp,
+            "parameters": {
+                "alpha": float or str,
+                "loss": str,
+                "max_iter": int
+            },
+            "metrics": {
+                "f1_weighted": float
+            }
+        }
+    """
     return {
         "model_version": prod_model_version.version,
         "registered_at": datetime.fromtimestamp(prod_model_version.creation_timestamp / 1000).isoformat(),
@@ -467,11 +531,26 @@ def get_model_info(user=Depends(verify_token)):
 
 @predict_app.post("/predict", response_model=PredictionResponse)
 def predict_product_type(request: PredictionRequest, user=Depends(verify_token), fastapi_request: Request = None):
-    start_time = time.time()
+    """
+    Predict the product type from a given designation and description.
+    
+    Stores the prediction result along with metadata (e.g., model version, session ID)
+    into a CSV file and tracks the session for feedback purposes.
+    
+    Requires authentication.
+    
+    Parameters:
+        request (PredictionRequest): Product input with designation and description.
+        user (dict): Authenticated user.
+    
+    Returns:
+        dict: {
+            "predicted_class": str
+        }
+    """
     username = user.get("sub")
     prediction = predictor.predict(request.designation, request.description)
     predicted_code = label_to_code.get(prediction, "UNKNOWN")
-    latency = time.time() - start_time
 
     # Create unique session_id for tracking this prediction
     session_id = f"{username}_{datetime.now().timestamp()}"
@@ -505,6 +584,27 @@ def predict_product_type(request: PredictionRequest, user=Depends(verify_token),
 
 @predict_app.post("/feedback")
 def submit_feedback(input: FeedbackInput, user=Depends(verify_token)):
+    """
+    Submit user feedback to correct the last predicted product label.
+
+    Looks up the user's most recent prediction (via session ID) and updates
+    the corresponding row in the feedback CSV with the corrected label, code, and correctness flag.
+
+    Triggers an asynchronous DVC/Git push to persist the updated feedback.
+
+    Parameters:
+        input (FeedbackInput): Object containing the corrected label.
+        user (dict): Authenticated user from token.
+    
+    Returns:
+        dict: Success message indicating feedback was recorded.
+    
+    Raises:
+        HTTPException:
+            - 400 if the provided label is invalid.
+            - 403 if no prediction session exists for the user.
+            - 404 if the session is not found in the CSV log.
+    """
     correct_label = input.correct_label
     username = user.get("sub")
 
@@ -517,7 +617,6 @@ def submit_feedback(input: FeedbackInput, user=Depends(verify_token)):
         raise HTTPException(status_code=403, detail="No prediction found for current session.")
 
     correct_code = label_to_code[correct_label]
-    is_correct = False
 
     # Read, find, and update only the matching session_id row
     with FileLock(CSV_LOCK_PATH):
@@ -549,5 +648,14 @@ def submit_feedback(input: FeedbackInput, user=Depends(verify_token)):
 # --- Metrics Endpoint ---
 @predict_app.get("/metrics")
 async def metrics():
+    """
+    Expose Prometheus metrics for the prediction service.
+
+    Returns metrics in plain text format compatible with Prometheus scraping.
+
+    Returns:
+        Response: Prometheus-formatted metrics with media type:
+        'text/plain; version=0.0.4; charset=utf-8'
+    """
     return Response(content=generate_latest(), media_type="text/plain; version=0.0.4; charset=utf-8")
 

@@ -16,7 +16,7 @@ def load_combined_data(x_path: str, y_path: str, save_path: str = None) -> pd.Da
     df_x = pd.read_csv(x_path, index_col=0)
     df_y = pd.read_csv(y_path, index_col=0)
     
-    # Convert target labels to string, as in the notebook.
+    # Convert target labels to string
     df_y = df_y.astype("str")
     
     df_combined = pd.concat([df_x, df_y], axis=1)

@@ -4,6 +4,7 @@ volumes:
   postgres-db-volume: {}
   grafana_data: {}
   prometheus_data: {}
+  alertmanager_data: {}
 
 services:
   dvc-sync:
@@ -190,6 +191,7 @@ services:
       AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
       AIRFLOW__WEBSERVER__WARN_DEPLOYMENT_EXPOSURE: 'false'
       AIRFLOW__LOGGING__LOGGING_LEVEL: DEBUG
+      AIRFLOW__API__AUTH_BACKENDS: "airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session"
       DOCKER_HOST: ${DOCKER_HOST:-unix:///var/run/docker.sock}
       GITHUB_TOKEN: ${GITHUB_TOKEN}
       GITHUB_REPO_OWNER: ${GITHUB_REPO_OWNER}
@@ -302,12 +304,31 @@ services:
     container_name: alertmanager_service
     volumes:
       - ./monitoring/prometheus/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/data
+    environment:
+      _AIRFLOW_WWW_USER_USERNAME: ${_AIRFLOW_WWW_USER_USERNAME}
+      _AIRFLOW_WWW_USER_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD}
     command:
       - '--config.file=/etc/alertmanager/alertmanager.yml'
     ports:
       - "9093:9093"
     depends_on:
       - prometheus
+      - webhook_proxy
+
+  webhook_proxy:
+    build:
+      context: .
+      dockerfile: "dockerfiles/alertmanager_proxy/Dockerfile"
+    container_name: webhook_proxy
+    environment:
+      _AIRFLOW_API_URL: ${_AIRFLOW_API_URL}
+      _AIRFLOW_WWW_USER_USERNAME: ${_AIRFLOW_WWW_USER_USERNAME} 
+      _AIRFLOW_WWW_USER_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD} 
+    ports:
+      - "5000:5000" 
+    depends_on:
+      - airflow-webserver
 
   grafana:
     image: grafana/grafana:latest
@@ -324,4 +345,3 @@ services:
       GF_LOG_LEVEL: debug
     depends_on:
       - prometheus
-      - alertmanager

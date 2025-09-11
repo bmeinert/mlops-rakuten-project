@@ -15,7 +15,7 @@ RUN pip install --upgrade pip
 # install dvc with s3 support
 RUN pip install dvc[s3]
 
-# Set working directory to /app (where the code is mounted)
+# Set working directory to /app
 WORKDIR /app
 
 COPY ./ /app/
@@ -24,5 +24,6 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # Set the entrypoint script - user permissions
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+
 # pull the data from s3
 CMD ["dvc", "pull"]

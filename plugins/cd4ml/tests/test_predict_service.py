@@ -103,7 +103,7 @@ def test_predict_without_auth():
         "description": "This is a test description"
     }
     resp = requests.post(f"{PREDICT_URL}/predict", json=test_data)
-    assert resp.status_code == 422  # FastAPI returns 422 for missing required header
+    assert resp.status_code == 422  
 
 def test_predict_with_invalid_token():
     """Test prediction with invalid token"""

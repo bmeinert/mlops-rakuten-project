@@ -1,5 +1,5 @@
 {
-  "title": "Auth Service Metrics Dashboard",
+  "title": "Auth Service Performance Monitoring",
   "uid": "auth_service_dashboard",
   "timezone": "browser",
   "panels": [

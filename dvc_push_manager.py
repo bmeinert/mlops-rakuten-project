@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 dvc_push_manager.py
-Improved DVC Push Logic for ML Pipeline
+DVC Push Logic for ML Pipeline
 Handles DVC tracking, Git operations, and error recovery more robustly.
 """
 
@@ -17,7 +17,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 class DVCPushManager:
-    """Manages DVC and Git operations for ML pipeline artifacts."""
+    # Manages DVC and Git operations for ML pipeline artifacts
     
     def __init__(self):
         self.cwd = os.getcwd()
@@ -28,7 +28,7 @@ class DVCPushManager:
         
     def _run_command(self, cmd: List[str], cwd: Optional[str] = None, 
                     capture_output: bool = False, check: bool = True) -> subprocess.CompletedProcess:
-        """Execute a command with proper error handling."""
+        # Execute a command with proper error handling
         cwd = cwd or self.cwd
         try:
             logger.info(f"Running: {' '.join(cmd)} in {cwd}")
@@ -60,13 +60,13 @@ class DVCPushManager:
             return False
 
         try:
-            # 1️⃣ Remote-URL ohne eingebettete Zugangsdaten
+            # Remote-URL 
             remote_url = (
                 f"https://github.com/{self.repo_owner}/{self.repo_name}.git"
             )
             self._run_command(["git", "remote", "set-url", "origin", remote_url])
 
-            # 2️⃣ .git-credentials im korrekten Schema
+            # .git-credentials 
             cred_file = os.path.expanduser("~/.git-credentials")
             os.makedirs(os.path.dirname(cred_file), exist_ok=True)
             with open(cred_file, "w") as fh:
@@ -93,13 +93,13 @@ class DVCPushManager:
             return False
 
     def find_dvc_files(self) -> List[Path]:
-        """Find all DVC files in the repository."""
+        # Find all DVC files in the repository
         dvc_files = list(Path(self.cwd).rglob("*.dvc"))
         logger.info(f"Found {len(dvc_files)} DVC files: {[str(f.relative_to(self.cwd)) for f in dvc_files]}")
         return dvc_files
     
     def check_dvc_status(self) -> Tuple[List[str], List[str]]:
-        """Check DVC status to find modified files."""
+        # Check DVC status to find modified files
         try:
             result = self._run_command(["dvc", "status"], capture_output=True, check=False)
             if result.returncode == 0 and not result.stdout.strip():
@@ -126,7 +126,7 @@ class DVCPushManager:
             return [], []
     
     def update_dvc_files(self, force_all: bool = False) -> List[str]:
-        """Update DVC tracking for modified files."""
+        # Update DVC tracking for modified files
         updated_files = []
         
         if force_all:
@@ -160,7 +160,7 @@ class DVCPushManager:
         return updated_files
     
     def commit_and_push_git(self, updated_files: List[str], description: str) -> bool:
-        """Commit and push changes to Git."""
+        # Commit and push changes to Git
         if not updated_files:
             logger.info("No DVC files to commit")
             return True
@@ -193,7 +193,7 @@ class DVCPushManager:
             return False
     
     def push_dvc(self) -> bool:
-        """Push DVC data to remote storage."""
+        # Push DVC data to remote storage
         try:
             self._run_command(["dvc", "push"])
             logger.info("Successfully pushed to DVC remote")
@@ -203,7 +203,7 @@ class DVCPushManager:
             return False
     
     def track_and_push(self, description: str, force_all: bool = False) -> bool:
-        """Main method to track and push DVC changes."""
+        # Main method to track and push DVC changes
         logger.info(f"Starting DVC track and push: {description}")
         logger.info(f"Current working directory: {self.cwd}")
         logger.info(f"Directory contents: {os.listdir(self.cwd)}")
@@ -240,22 +240,10 @@ class DVCPushManager:
             logger.error(f"Error during track and push: {e}")
             return False
 
-# Convenience functions for backward compatibility
-def setup_git_credentials():
-    """Legacy function for backward compatibility."""
-    manager = DVCPushManager()
-    return manager.setup_git_credentials()
 
-def track_and_push_simple(description: str, force_all: bool = False):
-    """Legacy function for backward compatibility."""
-    manager = DVCPushManager()
-    success = manager.track_and_push(description, force_all=force_all)
-    if not success:
-        logger.warning("Track and push completed with errors, but continuing pipeline...")
 
-# Enhanced version with retry logic
+# Track and Push with retry logic
 def track_and_push_with_retry(description: str, max_retries: int = 3, force_all: bool = False) -> bool:
-    """Track and push with retry logic for better reliability."""
     manager = DVCPushManager()
     
     for attempt in range(max_retries):
@@ -274,7 +262,6 @@ def track_and_push_with_retry(description: str, max_retries: int = 3, force_all:
     return False
 
 if __name__ == "__main__":
-    # Test the DVC push manager
     description = sys.argv[1] if len(sys.argv) > 1 else "test push"
     force_all = "--force" in sys.argv
     

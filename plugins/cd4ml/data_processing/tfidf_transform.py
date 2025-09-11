@@ -44,17 +44,14 @@ def apply_tfidf(
         max_features=max_features
     )
     
-    # Fit on the training data and transform it.
+    # Fit the vectorizer on the training data.
     X_train_tfidf = vectorizer.fit_transform(train_series)
     
     # Transform the validation and test data.
-    #def vectorizer_transform(series):
-    #    return vectorizer.transform(series)
-    
     X_validate_tfidf = ProductTypePredictorMLflow.vectorizer_transform(validate_series, vectorizer)
     X_test_tfidf = ProductTypePredictorMLflow.vectorizer_transform(test_series, vectorizer)
     
-    # Optionally save the TF-IDF matrices to files if save_paths is provided.
+    # Optionally, save the TF-IDF matrices to files if save_paths is provided.
     if save_paths is not None:
         if 'train' in save_paths:
             with open(save_paths['train'], 'wb') as f:

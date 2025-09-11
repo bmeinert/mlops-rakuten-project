@@ -1,4 +1,3 @@
-### --- auth_api.py ---
 from fastapi import FastAPI, Depends, HTTPException, status, Request, Response
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
@@ -8,7 +7,6 @@ from datetime import datetime, timedelta
 from typing import Dict
 import time
 from prometheus_client import generate_latest, Counter, Histogram
-from prometheus_client.metrics import MetricWrapperBase
 
 # --- FastAPI Setup ---
 auth_app = FastAPI()
@@ -27,13 +25,37 @@ users_db: Dict[str, Dict[str, str]] = {
 
 # --- JWT Utilities ---
 def create_access_token(data: dict, expires_delta: timedelta = None):
+    """
+    Generate a JWT access token with optional expiration.
+
+    Parameters:
+        data (dict): Payload to include in the token (e.g., user claims).
+        expires_delta (timedelta, optional): Token lifespan. Defaults to 15 minutes.
+
+    Returns:
+        str: Encoded JWT as a string.
+    """
     to_encode = data.copy()
     expire = datetime.now() + (expires_delta or timedelta(minutes=15))
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 def verify_token(token: str = Depends(oauth2_scheme)):
-# def verify_token(token: str):
+    """
+    Decode and validate a JWT access token.
+
+    Extracts the `sub` (username) claim, verifies its presence in the user database,
+    and returns the associated user object if valid.
+
+    Parameters:
+        token (str): JWT token provided via the OAuth2 scheme.
+
+    Returns:
+        dict: Authenticated user data from `users_db`.
+
+    Raises:
+        HTTPException (401): If the token is invalid, expired, or the user does not exist.
+    """
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username = payload.get("sub")
@@ -67,21 +89,23 @@ REQUEST_LATENCY = Histogram(
     ['method', 'endpoint']
 )
 
-# Optional: Counter for failed authentications --> needs additional code in /login
-#FAILED_AUTH_ATTEMPTS = Counter(
-#    'auth_service_failed_auth_attempts_total',
-#    'Total number of failed authentication attempts'
-#)
 
-# Optional: Counter for successful authentications --> needs additional code in /login
-#SUCCESSFUL_AUTH_ATTEMPTS = Counter(
-#    'auth_service_successful_auth_attempts_total',
-#    'Total number of successful authentication attempts'
-#)
-
-# Middleware for collecting metrics for EVERY request
+# Middleware for collecting metrics for every request
 @auth_app.middleware("http")
 async def add_process_time_header(request: Request, call_next):
+    """
+    Middleware to measure request processing time and expose Prometheus metrics.
+
+    Records the number of HTTP requests (`REQUEST_COUNT`) and their latency
+    (`REQUEST_LATENCY`) labeled by method and endpoint path.
+
+    Parameters:
+        request (Request): Incoming FastAPI request object.
+        call_next (Callable): Handler to process the request and produce a response.
+
+    Returns:
+        Response: The original response, after metric recording.
+    """
     start_time = time.time()
     response = await call_next(request)
     process_time = time.time() - start_time
@@ -105,6 +129,24 @@ async def add_process_time_header(request: Request, call_next):
 
 @auth_app.post("/login")
 def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    """
+    Authenticate user and issue a JWT access token.
+
+    Validates the username and password against the in-memory user database.
+    Returns a bearer token if authentication succeeds.
+
+    Parameters:
+        form_data (OAuth2PasswordRequestForm): Username and password submitted via form.
+
+    Returns:
+        dict: {
+            "access_token": str,
+            "token_type": "bearer"
+        }
+
+    Raises:
+        HTTPException (401): If authentication fails due to incorrect credentials.
+    """
     user = users_db.get(form_data.username)
     hashed_pw = sha256(form_data.password.encode()).hexdigest()
     if not user or user["password"] != hashed_pw:
@@ -117,12 +159,32 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
 # --- Admin-only Endpoints ---
 def admin_required(user=Depends(verify_token)):
+    """
+    Dependency to restrict access to admin-only endpoints.
+    """
     if user["role"] != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admins only")
     return user
 
 @auth_app.post("/users")
 def create_user(user_data: UserCreate, user=Depends(admin_required)):
+    """
+    Create a new user account (admin-only).
+
+    Requires authentication and admin privileges. Adds a new user to the in-memory `users_db`
+    with hashed password and assigned role.
+
+    Parameters:
+        user_data (UserCreate): Object containing `username`, `password`, and `role`.
+        user (dict): The authenticated admin user (injected via `admin_required`).
+
+    Returns:
+        dict: Success message upon user creation.
+
+    Raises:
+        HTTPException (400): If the username already exists.
+        HTTPException (403): If the requester is not an admin.
+    """
     if user_data.username in users_db:
         raise HTTPException(status_code=400, detail="User already exists")
     users_db[user_data.username] = {
@@ -134,6 +196,23 @@ def create_user(user_data: UserCreate, user=Depends(admin_required)):
 
 @auth_app.delete("/users/{username}")
 def delete_user(username: str, user=Depends(admin_required)):
+    """
+    Delete an existing user account (admin-only).
+
+    Requires authentication and admin privileges. Removes the specified user
+    from the in-memory `users_db`.
+
+    Parameters:
+        username (str): Username of the account to delete.
+        user (dict): The authenticated admin user (injected via `admin_required`).
+
+    Returns:
+        dict: Success message upon user deletion.
+
+    Raises:
+        HTTPException (404): If the user does not exist.
+        HTTPException (403): If the requester is not an admin.
+    """
     if username not in users_db:
         raise HTTPException(status_code=404, detail="User not found")
     del users_db[username]
@@ -142,13 +221,32 @@ def delete_user(username: str, user=Depends(admin_required)):
 # --- Health Check Endpoint ---
 @auth_app.get("/health")
 def health_check():
+    """
+    Health check endpoint for the authentication service.
+
+    Returns a simple status message indicating the service is running.
+
+    Returns:
+        dict: {
+            "status": "ok"
+        }
+    """
     return {"status": "ok"}
 
+
 # ----------------------------------------------------
-# Prometheus Metriken Endpoint
+# Prometheus Metrics Endpoint
 # ----------------------------------------------------
 
 @auth_app.get("/metrics")
 async def metrics():
-    # generate_latest() erzeugt die Prometheus-Textformat-Ausgabe
+    """
+    Expose Prometheus metrics for the authentication service.
+
+    Returns metrics in plain text format compatible with Prometheus scraping.
+
+    Returns:
+        Response: Prometheus-formatted metrics with media type:
+        'text/plain; version=0.0.4; charset=utf-8'
+    """
     return Response(content=generate_latest(), media_type="text/plain; version=0.0.4; charset=utf-8")

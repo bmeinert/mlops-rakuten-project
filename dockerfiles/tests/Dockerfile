@@ -6,10 +6,6 @@ RUN apt-get update \
   && apt-get install -y --no-install-recommends git curl gosu \
   && rm -rf /var/lib/apt/lists/*
 
-# Git safe directory configuration (important for DVC related tests if applicable)
-#RUN git config --global --add safe.directory /app && \
-#    git config --global --add safe.directory '*'
-
 COPY dockerfiles/tests/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 

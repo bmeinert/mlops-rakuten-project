@@ -1,7 +1,5 @@
 """
 run_model_validation.py
-
-Updated version with improved DVC push logic and better error handling.
 """
 
 import sys
@@ -10,11 +8,8 @@ import mlflow
 import pandas as pd
 import pickle
 from mlflow.tracking import MlflowClient
-
-# Import the improved DVC push manager
 from dvc_push_manager import track_and_push_with_retry
-
-from model_validation import load_model, prediction_and_metrics, save_txt_file
+from model_validation import prediction_and_metrics
 from plugins.cd4ml.model_training.model_training import load_train_data
 
 # ---------- Paths ----------
@@ -58,7 +53,6 @@ def validate_input_files():
         "X_test_tfidf": X_TEST_TFIDF_PATH,
         "y_test": Y_TEST_PATH,
         "current_run_id": os.path.join(OUTPUT_DIR, "current_run_id.txt"),
-        #"reference_df_evidently": REFERENCE_EVIDENTLY_PATH,
     }
     
     missing_files = []
@@ -149,11 +143,6 @@ def validate_and_test_model(client, new_run_id):
     print(f"Validation accuracy: {val_acc:.4f}")
     print(f"Validation F1 (weighted): {val_f1:.4f}")
     
-    # Save classification report
-    #report_filename = f"classification_report_{MODEL_FILE}"
-    #report_path = save_txt_file(OUTPUT_DIR, report_filename, classification_repo)
-    #print(f"Classification report saved to: {report_path}")
-    
     return val_acc, val_f1, class_report, latest_model, y_pred
 
 def promote_model_if_better(client, new_run_id, new_f1, prod_f1):
@@ -190,16 +179,15 @@ def promote_model_if_better(client, new_run_id, new_f1, prod_f1):
                 alias="production",
                 version=new_version.version
             )
-            print(f"✅ Model version {new_version.version} is now in production.")
+            print(f"Model version {new_version.version} is now in production.")
             
-            # Also set it to the "Production" stage for backward compatibility
             try:
                 client.transition_model_version_stage(
                     name="SGDClassifier_Model",
                     version=new_version.version,
                     stage="Production"
                 )
-                print(f"✅ Model version {new_version.version} transitioned to Production stage.")
+                print(f"Model version {new_version.version} transitioned to Production stage.")
             except Exception as e:
                 print(f"Warning: Could not transition to Production stage: {e}")
             
@@ -272,9 +260,6 @@ def main():
 
             reference_df_evidently.to_csv(REFERENCE_EVIDENTLY_PATH, index=False)
 
-            #with open(REFERENCE_EVIDENTLY_PATH, "w") as f:
-            #    f.write(reference_df_evidently)
-
             mlflow.log_metric("test_accuracy", val_acc)
             mlflow.log_metric("test_f1_weighted", val_f1)
             mlflow.log_param("promoted_to_production", promoted)
@@ -292,7 +277,7 @@ def main():
         print(f"Test F1 score (weighted): {val_f1:.4f}")
         if prod_f1 is not None:
             print(f"Production F1 score: {prod_f1:.4f}")
-        print(f"Model promoted: {'✅ YES' if promoted else '❌ NO'}")
+        print(f"Model promoted: {'YES' if promoted else 'NO'}")
         print(f"Reason: {reason}")
 
     except Exception as e:
@@ -319,4 +304,3 @@ if __name__ == "__main__":
         print("Successfully tracked and pushed validation results to DVC")
     else:
         print("Warning: DVC tracking failed, but model validation completed successfully")
-        # Don't exit with error - validation was successful

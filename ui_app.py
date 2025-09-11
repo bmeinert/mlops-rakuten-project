@@ -7,7 +7,7 @@ import subprocess
 # --- Configuration ---
 # IMPORTANT: Ensure these URLs match where your FastAPI services are running.
 AUTH_API_BASE_URL = "http://localhost:8001"
-PREDICT_API_BASE_URL = "http://localhost:8002" # Updated to 8002 as per error message
+PREDICT_API_BASE_URL = "http://localhost:8002" 
 
 product_dict = {10: 'Used Books', 
                 1940: 'Food', 
@@ -37,6 +37,7 @@ product_dict = {10: 'Used Books',
                 2910: 'Household linens', 
                 1560: 'Furniture', 
                 1920: 'Home accessories'}
+
 # --- Session State Initialization ---
 # Initialize session state variables if they don't already exist.
 # This helps maintain state across Streamlit re-runs.
@@ -94,15 +95,13 @@ def login_user(username, password):
         st.session_state.logged_in = True
         st.session_state.access_token = data["access_token"]
         st.session_state.username = username
-        # For this example, we'll assume the role is 'admin' if username is 'admin', otherwise 'user'.
-        # In a production app, you would parse the JWT payload to extract the role.
         if username == "admin":
             st.session_state.user_role = "admin"
         else:
             st.session_state.user_role = "user"
 
         st.success(f"Logged in as {username}!")
-        st.rerun() # Rerun to update UI based on login status
+        st.rerun()
     except requests.exceptions.RequestException as e:
         st.error(f"Login failed: {e}")
         if response.status_code == 401:
@@ -118,7 +117,7 @@ def logout_user():
     st.session_state.user_role = None
     st.session_state.show_prediction_message = False
     st.info("Logged out successfully.")
-    st.rerun() # Rerun to update UI based on logout status
+    st.rerun()
 
 def create_user(username, password, role):
     """
@@ -160,7 +159,6 @@ def get_prediction(designation, description):
     Sends a prediction request to the predict API.
     Requires authentication. Uses 'token' header.
     """
-    # Prediction API expects 'token' header, not 'Authorization: Bearer'
     headers = {"token": st.session_state.access_token}
     try:
         response = requests.post(
@@ -180,7 +178,6 @@ def get_model_info():
     Retrieves model information from the predict API.
     Requires authentication. Uses 'token' header.
     """
-    # Prediction API expects 'token' header, not 'Authorization: Bearer'
     headers = {"token": st.session_state.access_token}
     try:
         response = requests.get(
@@ -200,14 +197,12 @@ def send_feedback(designation, description, predicted_label, correct_label, acce
     Requires authentication.
     """
     headers = {"token": access_token}
-    #headers = {"Authorization": f"Bearer {access_token}"}
     payload = {
         "designation": designation,
         "description": description,
         "predicted_label": predicted_label,
         "correct_label": correct_label
     }
-    #response = None
     try:
         response = requests.post(
             f"{PREDICT_API_BASE_URL}/feedback",
@@ -249,10 +244,9 @@ def handle_predict_button_click():
     Callback for the predict button.
     Resets dropdown and handles prediction logic.
     """
-    # Set dropdown to default "Select a class" by resetting its index
     st.session_state.selected_category_from_dropdown_index = 0
-    st.session_state.confirmed_category = None # Clear any previous confirmation
-    st.session_state.show_prediction_message = False # Reset message visibility
+    st.session_state.confirmed_category = None
+    st.session_state.show_prediction_message = False 
     st.session_state.show_all_categories = False
     st.session_state.show_upload_message = False
     st.session_state.upload_status_message = None
@@ -279,7 +273,6 @@ def handle_confirm_category_click(selected_category_value):
     Callback for the confirm category button.
     Stores confirmed category and clears input fields/dropdown.
     """
-    # Get the currently selected value from the selectbox
     current_selection = selected_category_value
 
     if current_selection != SELECT_TEXT and current_selection != CHOOSE_OTHER_CATEGORY_TEXT:
@@ -316,27 +309,24 @@ def handle_confirm_category_click(selected_category_value):
         
         st.session_state.show_upload_message = True
         st.session_state.confirmed_category = current_selection
-        # a) Clear input fields and reset dropdown after confirmation
+        # Clear input fields and reset dropdown after confirmation
         st.session_state.designation_input = ""
         st.session_state.description_input = ""
-        st.session_state.last_prediction = None # Clear prediction
-        st.session_state.selected_category_from_dropdown_index = 0 # Reset dropdown
-        st.session_state.show_prediction_message = False # Hide prediction message
-        st.session_state.show_all_categories = False # Reset category selection state
+        st.session_state.last_prediction = None 
+        st.session_state.selected_category_from_dropdown_index = 0 
+        st.session_state.show_prediction_message = False 
+        st.session_state.show_all_categories = False 
 
 def handle_category_select_change():
     """
     Callback for when the category selectbox changes.
     Updates the index of the selected category in session state.
     """
-    # Get the currently selected value from the selectbox
     selected_value = st.session_state.category_select
 
     if selected_value == CHOOSE_OTHER_CATEGORY_TEXT:
         st.session_state.show_all_categories = True
         st.session_state.selected_category_from_dropdown_index = 0
-    #elif selected_value == SELECT_TEXT:
-    #    pass
     else:
         pass
 
@@ -385,13 +375,12 @@ else:
 
             if delete_user_button:
                 delete_user(user_to_delete)
-
+ 
         st.header("Model Management")
-        #st.subheader("Model Information")
         if st.button("Fetch Model Info"):
             model_info = get_model_info()
             if model_info:
-                st.json(model_info) # Display model info in a nice JSON format
+                st.json(model_info) 
 
         #st.subheader("Start retraining the model")
         if st.button("Retrain Model"):

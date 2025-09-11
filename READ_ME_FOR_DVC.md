@@ -1,4 +1,4 @@
-How To: DVC Setup
+# How To: DVC Setup
 
 1. Create Virtual Enviroment - Run in Console (Optional): 
 - python -m venv env

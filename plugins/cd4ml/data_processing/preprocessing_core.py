@@ -33,7 +33,6 @@ class ProductTypePredictorMLflow:
         if not isinstance(description, str):
             raise ValueError("description has to be a string.")
         
-        #combined_text = f"{designation} {description}"
         vectorized = self.preprocess(designation, description)
         prediction = self.model.predict(vectorized)[0]
         return self.product_dictionary[int(prediction)]

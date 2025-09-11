@@ -5,14 +5,10 @@ route:
   receiver: 'airflow_retrain'
   group_wait: 30s
   group_interval: 5m
-  repeat_interval: 1h
+  repeat_interval: 72h
 
 receivers:
   - name: 'airflow_retrain'
     webhook_configs:
-      - url: "http://airflow-webserver:8080/api/v1/dags/ml_pipeline_mixed_experiment_dvc/dagRuns"
+      - url: "http://webhook_proxy:5000/alertmanager-webhook" 
         send_resolved: false
-        http_config:
-          basic_auth:
-            username: "admin"
-            password: "admin123"

@@ -2,7 +2,7 @@ name: Pytest, Build & Push Single Docker Services, and Docker Compose Build
 
 # This workflow runs CodeQL, Pytest, builds and pushes Docker images for various services (via a matrix),
 # and checks Docker Compose builds (via a matrix) without running containers.
-# It is triggered on pushes or pull requests to the main, develop, or dev_new-feature-githubactions branches.
+# It is triggered on pushes or pull requests to the main or develop branches.
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -10,9 +10,9 @@ concurrency:
 
 on:
   push:
-    branches: [ main, develop, dev_new-feature-githubactions ]
+    branches: [ main, develop ]
   pull_request:
-    branches: [ main, develop, dev_new-feature-githubactions ]
+    branches: [ main, develop ]
 
 env:
   # Docker Hub namespace
@@ -137,7 +137,6 @@ jobs:
           - name: tests
             dockerfile: dockerfiles/tests/Dockerfile
             tag: tests
-          # neu hinzugefügt
           - name: airflow-webserver
             dockerfile: dockerfiles/airflow/Dockerfile
             tag: airflow-webserver
@@ -198,4 +197,3 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - run: docker compose build
-      # - run: docker compose -f docker-compose.inference.yml build <- obsolete

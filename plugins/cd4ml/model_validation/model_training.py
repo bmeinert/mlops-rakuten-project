@@ -3,7 +3,6 @@ import numpy as np
 from sklearn.linear_model import SGDClassifier
 from sklearn.utils.class_weight import compute_class_weight
 from sklearn.base import BaseEstimator
-import joblib
 
 def load_train_data(X_train_tfidf_path: str, y_train_path: str) -> pd.DataFrame:
     """
@@ -21,7 +20,6 @@ def load_train_data(X_train_tfidf_path: str, y_train_path: str) -> pd.DataFrame:
     """
 
     X_train_tfidf = pd.read_pickle(X_train_tfidf_path)
-    #X_train_tfidf = joblib.load(X_train_tfidf_path)
     y_train = pd.read_pickle(y_train_path)
 
     return X_train_tfidf, y_train

@@ -10,6 +10,6 @@
 #      subject: "Grafana Alert: {{ .Alerts.0.Labels.alertname }}"
 #    schedules:
 #      - type: time
-#        muteTimeIntervals: ["23:59-08:00"] # Alarme zwischen 22:00 und 08:00 Uhr stummschalten
+#        muteTimeIntervals: ["23:59-08:00"] 
 #    #   - type: day
-#    #     muteDaysOfWeek: ["saturday", "sunday"] # Alarme am Wochenende stummschalten
+#    #     muteDaysOfWeek: ["saturday", "sunday"]

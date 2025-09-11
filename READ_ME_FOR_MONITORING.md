@@ -122,16 +122,4 @@ Alertmanager: http://localhost:9093
 
 Grafana UI: http://localhost:3000 -> (admin/admin123) -> go to Dashboards
 
-# Trigger Test step-by-step
-
-- Click “Query” in the top nav to open the expression editor.
-- Make sure you’re on the “Graph” view (not “Table”).
-- Click the “Insert metric at cursor” button (it looks like a little grid icon adjacent to the input field).
-- From the dropdown, select prediction_f1_score. That will autocomplete the metric name into the input.
-
-# Trigger Alertmanager
-
-...
-
-
--> Watch Alert triggering Dag Airflow: http://localhost:8080 (airflow/airflow)
+Airflow: http://localhost:8080 (airflow/airflow)
